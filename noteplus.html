@@ -1,38 +1,288 @@
-<!DOCTYPE html><html><head>
-<meta name='viewport' content='width=device-width, initial-scale=1' />
+<!DOCTYPE html><html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+<style>
+textarea {font-family:Times New Roman;font-size:80%;padding:10px;margin:0px;}
+button {height:30px;font-family:Times New Roman;font-size:80%;padding-left:2px;padding-right:2px;}
+select {font-family:Times New Roman;font-size:80%;}
+</style>
+<script src='../../jsproj/txutilsjs/txutils.js'></script>
 </head>
-<body>
+<body style='font-family:Times New Roman;font-size:70%;'>
 <b>
 github.com/ianlow27/noteplushtml
 </b>
-- 0.0.1_241211-1839 
+- 0.0.2_241211-1859 
 |noteplushtml facilitates text processing
 |Author: Ian Low
 |Copyright (c) 2024 Ian Low
 |Usage Rights: MIT License
-<table style='width:95%;' border=0 cellspacing=0 cellpadding=0 >
-<tr>
-<td valign='top' style='width:69%;padding:0px;margin:0px;'>
-<textarea id='tx1' style='width:98%;'></textarea>
-</td>
-<td valign='top' style='width:29%;padding:0px;margin:0px;'>
-<textarea id='tx1' style='width:95%;'></textarea>
-</tr>
-</td>
-</table>
-<button id='btn1'>Submit</button>
-<button id='btn1' onclick='func1();'>Submit</button>
-<div id='dv1'>
-</div>
+<br/><b>NotePlusHtml</b>&emsp;
+
+<select id='selfiles' onchange='selfile();'>
+</select><br/>
+
+
+<span id='spstatus' style='color:blue;'></span>
+
+
+<br/>
+<textarea id='tx1' style='width:90%;height:240px;'>
+</textarea><br/>
+<button id='btrgxrpl' onclick='rgxreplace();'>Rgx Replace</button>
+<button id='btsort' onclick='sorttext();'>Sort</button>
+<button id='btcopy' onclick='copy2clipbrd();'>Copy</button>
+
+<button id='btsave' onclick='savetext();'>Save</button>
+<button id='btrestore' onclick='restoretext("cnfrm");'>Restore</button>
+<button id='btnewfile' onclick='newfile();'>New File</button>
+
+<button id='btnrnmfile' onclick='renamefile();'>Rename File</button>
+
+<button id='btdelfile' onclick='delfile();'>Delete File</button>
+
 <script>
-  document.getElementById('tx1').focus();
-  document.getElementById('dv1').innerHTML=
-    "<div style='background-color:#ffddbb;'>Output here!</div>";
-//--------------------------------------
-function func1(){
-  alert('Clicked here!');
+
+resize2device();
+//localStorage.removeItem('sortedithtml_new4');
+//localStorage.setItem('sortedithtml_currfile','new1');
+//localStorage.setItem('sortedithtml_listfiles','new1%%%new2%%%new3');
+let bautosave=true;
+  
+let fname=localStorage.getItem('sortedithtml_currfile');
+//alert(fname);
+const tx1=document.getElementById('tx1');
+const spstatus=document.getElementById('spstatus');
+const selfiles=document.getElementById('selfiles');
+popselfiles();
+try{
+restoretext();
+}catch(e){
+  alert(e.message);
+}
+setInterval('savetext();', 3*20*1000);
+//-------------------------------------------
+function sorttext(){
+  if(promptyn('Do you want to sort this file?  - '+fname)!='y') return 0;
+  const alines=tx1.value.split(/\n/);
+  alines.sort();
+  let strout='';
+  for(let i in alines){
+    strout+=alines[i]+'\n';
+  }
+  tx1.value=strout.trim();
 }//endfunc
-//--------------------------------------
+//-------------------------------------------
+function savetext(pname=''){
+
+  if(pname==''){
+    if(!bautosave) return -1;
+    pname=fname;
+  }
+  localStorage.setItem('sortedithtml_'+pname,tx1.value);
+  const dtnow = new Date();
+  spstatus.innerHTML='saved '+dtnow.toISOString();
+  //alert(pname+'______'+localStorage.getItem('sortedithtml_'+pname));
+  setTimeout("spstatus.innerHTML='';",3000);
+}//endfunc
+//-------------------------------------------
+function restoretext(popt='nocnfrm'){
+   if(popt=='cnfrm')
+     if(promptyn('Do you want to restore this file?  - '+fname)!='y') return 0;
+  fname=localStorage.getItem('sortedithtml_currfile');
+  tx1.value = localStorage.getItem('sortedithtml_'+fname);
+}//endfunc
+//---------------------------------
+function copy2clipbrd(){
+  savetext();
+bautosave=false;
+  const strorig=tx1.value;
+  //alert(1);
+  const afiles=localStorage.getItem('sortedithtml_listfiles').split('%%%');
+  let strout='';
+  //----------------------
+  try{
+    //alert(2);
+  for(i in afiles){
+    strout+='\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n';
+    strout+='['+afiles[i]+']:\n';
+    strout+=localStorage.getItem('sortedithtml_'+afiles[i]);
+    strout+='\n\n';
+  }//endfor
+  }catch(e){
+     alert(e.message);
+   }
+  tx1.value=strout;
+  //alert(strout);
+  //------------------------
+  try{
+    //_alert(strorig);
+    localStorage.setItem('sortedithtml_strorig',strorig);
+  setTimeout('rev2strorig();',4000);
+    copy2clipboard(tx1);
+  
+  
+  }catch(e){
+    alert(e.message);
+  }
+}//endfunc
+function rev2strorig(){
+    try{
+  //tx1.value='';
+  //alert(1);
+   const str1=localStorage.getItem('sortedithtml_strorig');
+ // alert(str1);
+   tx1.value=str1;
+    }catch(e){
+    alert(e.message);
+  }
+  bautosave=true;
+}
+//-------------------------------------------
+function newfile(pname=''){
+  if(pname=='') pname = prompt('Please enter the name of the new file:');
+  if(pname == null) return 0;
+  //alert(fname);
+  localStorage.setItem('sortedithtml_currfile', pname);
+
+  localStorage.setItem('sortedithtml_listfiles',
+     sortuniq(localStorage.getItem('sortedithtml_listfiles')+'%%%'+pname,'%%%'));
+  fname=pname;
+  location.reload();
+}//endfunc
+//-------------------------------------------
+function popselfiles(popt='start'){
+try{
+  let idx=0;
+  selfiles.innerHTML='';
+  const afiles=localStorage.getItem('sortedithtml_listfiles').split('%%%');
+  for(i in afiles){
+    var opt = document.createElement('option');
+    if((i==0)&&(popt=='del')){
+      fname=afiles[i];
+      localStorage.setItem('sortedithtml_currfile', fname);
+      //alert('___'+fname);
+    }
+    if((fname==afiles[i])&&(popt=='start')){
+      idx=i;
+    }
+    opt.value = afiles[i];
+    opt.innerHTML = afiles[i];
+    selfiles.appendChild(opt)
+  }
+  selfiles.selectedIndex=idx;
+  //localStorage.setItem('sortedithtml_currfile', fname);localStorage.setItem('sortedithtml_currfile', fname);
+  
+}catch(e){
+  alert(e.message);
+}
+}//endfunc
+//-------------------------------------------
+function selfile(){
+  savetext();
+  fname=(selfiles[selfiles.selectedIndex].value);
+  localStorage.setItem('sortedithtml_currfile', fname);
+  restoretext();
+}//endfunc
+//-------------------------------------------
+function delfile(pname=''){
+  try{
+    if(pname==''){
+      fname=(selfiles[selfiles.selectedIndex].value);
+      pname=fname;
+      if(promptyn('Do you want to delete this file?  - '+pname)!='y') return 0;
+    }
+  }catch(e){
+    alert(e.message);
+  }
+ 
+ localStorage.removeItem('sortedithtml_'+pname);
+ let listfiles=localStorage.getItem('sortedithtml_listfiles');
+ listfiles='%%%'+listfiles+'%%%';
+
+ let rgx=new RegExp('%%%'+pname+'%%%');
+ listfiles=
+   listfiles
+     .replace(rgx,'%%%')
+     .replace(/^%%%/,'')
+     .replace(/%%%$/,'')
+         ;
+ //alert(listfiles);
+  localStorage.setItem('sortedithtml_listfiles',listfiles);
+  try{
+ popselfiles('del');
+ location.reload();
+}catch(e){
+  alert(e.message);
+ }
+}//endfunc
+//-------------------------------------------
+function renamefile(){
+  bautosave=false;
+  let newname='';
+  try{
+    newname=prompt('New file name for '+fname+':');
+    if(!newname.match(/[a-zA-Z]+/)) return 0;
+  }catch(e){
+    return 0;
+    alert(e.message);
+  }
+  //alert(newname);
+  savetext(newname);
+  delfile(fname);
+  newfile(newname);
+  bautosave=true;
+}//endfunc
+//-------------------------------------------
+function rgxreplace(){
+//(\d\d)\sJan\s(\d\d\d\d)%%%$2-01-$1###(\d\d)\sFeb\s(\d\d\d\d)%%%$2-02-$1###(\d\d)\sMar\s(\d\d\d\d)%%%$2-03-$1###(\d\d)\sApr\s(\d\d\d\d)%%%$2-04-$1###(\d\d)\sMay\s(\d\d\d\d)%%%$2-05-$1###(\d\d)\sJun\s(\d\d\d\d)%%%$2-06-$1###(\d\d)\sJul\s(\d\d\d\d)%%%$2-07-$1###(\d\d)\sAug\s(\d\d\d\d)%%%$2-08-$1###(\d\d)\sSep\s(\d\d\d\d)%%%$2-09-$1###(\d\d)\sOct\s(\d\d\d\d)%%%$2-10-$1###(\d\d)\sNov\s(\d\d\d\d)%%%$2-11-$1###(\d\d)\sDec\s(\d\d\d\d)%%%$2-12-$1
+//(\d\d)/(\d\d)/(\d\d\d\d)%%%$3-$2-$1
+
+
+//(\d\d)\sJan\s(\d\d\d\d)%%%$2-01-$1###(\d\d)\sFeb\s(\d\d\d\d)%%%$2-02-$1###(\d\d)\sMar\s(\d\d\d\d)%%%$2-03-$1###(\d\d)\sApr\s(\d\d\d\d)%%%$2-04-$1
+//(\d\d)\sMay\s(\d\d\d\d)%%%$2-05-$1###(\d\d)\sJun\s(\d\d\d\d)%%%$2-06-$1###(\d\d)\sJul\s(\d\d\d\d)%%%$2-07-$1###(\d\d)\sAug\s(\d\d\d\d)%%%$2-08-$1
+//(\d\d)\sSep\s(\d\d\d\d)%%%$2-09-$1###(\d\d)\sOct\s(\d\d\d\d)%%%$2-10-$1###(\d\d)\sNov\s(\d\d\d\d)%%%$2-11-$1###(\d\d)\sDec\s(\d\d\d\d)%%%$2-12-$1
+  const lrgx = prompt('Please enter your regex match and replace patterns separated by a triple percentage sign (%%%) and different multiple replacements by a triple hash (###): ');
+//alert(lrgx);
+  if(lrgx == null) return -1;
+alines = lrgx.split(/###/);
+for(i in alines){
+  alines[i] = alines[i].trim();
+  argx = alines[i].split(/%%%/);
+  if(typeof argx[1] == 'undefined') return -1;
+  lrepl = argx[1];
+  let str1 = tx1.value;
+  const rgx = new RegExp(argx[0], 'g');
+  tx1.value = str1.replace(rgx, argx[1]);
+}//endfor
+}//endfunc
+//-------------------------------------------
+//endfunc
+//-------------------------------------------
+//endfunc
+//-------------------------------------------
+//endfunc
+//-------------------------------------------
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </body>
 </html>
